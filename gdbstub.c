@@ -137,7 +137,6 @@ gdb_sendstr(const char *s)
 	gdb_sendraw(buf, len);
 }
 
-#define GDBSTUB_PORT 3713
 static int
 gdbstub_accept(void)
 {
@@ -149,12 +148,12 @@ gdbstub_accept(void)
 
 	flag = 1;
 	rc = setsockopt(client, IPPROTO_TCP, TCP_NODELAY, (void*)&flag,
-	    sizeof flag);
+		sizeof flag);
 	if (rc == -1)
 		err(EX_OSERR, "setsockopt");
 
 	rc = setsockopt(client, SOL_SOCKET, SO_KEEPALIVE, (void*)&flag,
-	    sizeof flag);
+		sizeof flag);
 	if (rc == -1)
 		err(EX_OSERR, "setsockopt");
 
@@ -166,8 +165,8 @@ void
 gdbstub_init(void)
 {
 	int rc, optval;
-	struct sockaddr_in any = { 0 };
-
+	struct sockaddr_in any = { 0 }, sock_addr;
+	socklen_t sock_addr_len = sizeof(sock_addr);
 	if (csock != -1)
 		close(csock);
 	csock = -1;
@@ -181,12 +180,12 @@ gdbstub_init(void)
 
 	optval = 1;
 	rc = setsockopt(lsock, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof
-	    optval);
+		optval);
 	if (rc == -1)
 		err(EX_OSERR, "setsockopt(REUSEADDR)");
 
 	any.sin_family = PF_INET;
-	any.sin_port = htons(GDBSTUB_PORT);
+	any.sin_port = htons(0);
 	any.sin_addr.s_addr = htonl(INADDR_ANY);
 
 	rc = bind(lsock, (void*)&any, sizeof any);
@@ -197,9 +196,12 @@ gdbstub_init(void)
 	if (rc == -1)
 		err(EX_OSERR, "listen");
 
-	printf("GDB stub listening on [*]:%u\n", (uns)GDBSTUB_PORT);
-
+	if (getsockname(lsock, (struct sockaddr *) &sock_addr, &sock_addr_len) < 0)
+		err(EX_OSERR, "getsockname");
+		
+	printf("GDB stub listening on [*]:%d\n", ntohs(sock_addr.sin_port));
 	printf("Waiting for client to connect...\n");
+	fflush(stdout);
 	csock = gdbstub_accept();
 	ASSERT(csock != -1, "gdbstub_accept");
 
@@ -237,7 +239,7 @@ gdbstub_interactive(void)
 		}
 
 		rd = recv(csock, &clientbuf[cblen], sizeof clientbuf - cblen,
-		    MSG_DONTWAIT);
+			MSG_DONTWAIT);
 		if (rd == 0) {
 			printf("Client dropped, exiting.\n");
 			exit(0);
@@ -286,7 +288,7 @@ process:
 	} while (!execute);
 
 	ASSERT(execute,
-	    "we shouldn't leave GDB interactive until we are told to");
+		"we shouldn't leave GDB interactive until we are told to");
 }
 
 static void
@@ -393,7 +395,7 @@ CMD_HANDLER(getregs)
 
 	for (unsigned i = 0; i < 16; i++) {
 		rc = sprintf(&buf[i*4], "%02x%02x", registers[i] & 0xff,
-		    registers[i] >> 8);
+			registers[i] >> 8);
 		ASSERT(rc == 4, "x");
 	}
 

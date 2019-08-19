@@ -83,10 +83,10 @@ GDB: Debugging Emulated ROMs
 ============================
 
 Invoke `msp430-emu -g <romfile>` to wait for GDB on startup. The emulator binds
-TCP port 3713 and waits for the first client to connect. Use `msp430-gdb` from
+to a random TCP port, prints it and waits for the first client to connect. Use `msp430-gdb` from
 another terminal to connect (mspgcc patchset on top of gdb-7.2a) with:
 
-    msp430-gdb -ex 'target remote localhost:3713'
+    msp430-gdb -ex 'target remote localhost:<printed port>'
 
 Supported commands are:
 * reading/writing registers
@@ -104,7 +104,7 @@ GDB: Reverse debugging
 In gdb, you can use `reverse-stepi` (or `rsi` for short) to step backwards. For
 example (from Hanoi):
 
-    $ msp430-gdb -nx -ex 'target remote localhost:3713'
+    $ msp430-gdb -nx -ex 'target remote localhost:<printed port>'
 
     (gdb) x/i $pc
     => 0x4400: mov #17408, r1 ;#0x4400
