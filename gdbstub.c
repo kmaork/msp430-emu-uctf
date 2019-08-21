@@ -101,7 +101,7 @@ gdb_cksumstr(void *s)
 }
 
 static void
-gdb_sendraw(char *p, size_t len)
+gdb_sendraw(const char *p, size_t len)
 {
 	ssize_t wr;
 
@@ -117,24 +117,35 @@ gdb_sendraw(char *p, size_t len)
 }
 
 static inline void
-gdb_sendrawstr(char *s)
+gdb_sendrawstr(const char *s)
 {
-
 	gdb_sendraw(s, strlen(s));
+}
+
+static void
+gdb_begin_response()
+{
+	gdb_sendraw("$", 1);
+}
+
+static void
+gdb_end_response(uint8_t checksum)
+{
+    int len;
+    char buffer[4] = { 0 };
+	len = snprintf(buffer, sizeof buffer, "#%02x", checksum);
+	gdb_sendraw(buffer, len);
 }
 
 static void
 gdb_sendstr(const char *s)
 {
-	unsigned chk, len;
-	char buf[4096], *p;
-
+	unsigned chk;
 	ASSERT(csock != -1, "csock");
-
 	chk = gdb_cksumstr((void*)s);
-	len = snprintf(buf, sizeof buf, "$%s#%02x", s, chk);
-
-	gdb_sendraw(buf, len);
+    gdb_begin_response();
+    gdb_sendrawstr(s);
+    gdb_end_response(chk);
 }
 
 static int
@@ -444,7 +455,6 @@ CMD_HANDLER(readmem)
 		ASSERT(rc == 2, "x");
 		slen += (unsigned)rc;
 	}
-
 	gdb_sendstr(buffer);
 }
 
