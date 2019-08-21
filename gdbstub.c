@@ -12,6 +12,7 @@
 
 #define PKT_BUF_MAX 0x2000
 #define PKT_BUF_STR "2000"
+#define BUFSIZE (unsigned)4096
 
 // Only one client allowed to debug at a time...
 int lsock = -1;
@@ -437,25 +438,31 @@ CMD_HANDLER(setregs)
 // Read/write memory as a stream of bytes
 CMD_HANDLER(readmem)
 {
-	unsigned start, rlen, slen, i;
-	char buffer[4096+1] = { 0 };
+	unsigned start, end, rlen, i;
+	char buffer[BUFSIZE+1] = { 0 };
 	int rc;
-
+	uint8_t chk;
 	(void)extra;
 
+	ASSERT(csock != -1, "csock");
 	cmd++;
+
 	rc = sscanf(cmd, "%x,%x", &start, &rlen);
 	ASSERT(rc == 2, "x");
+	gdb_begin_response();
+	end = start + rlen;
+	chk = 0;
 
-	ASSERT(rlen*2 < sizeof buffer, "buffer overrun");
-	slen = 0;
-	for (i = 0; i < rlen; i++) {
-		rc = sprintf(&buffer[slen], "%02x", membyte(start + i));
-
-		ASSERT(rc == 2, "x");
-		slen += (unsigned)rc;
-	}
-	gdb_sendstr(buffer);
+    while (start < end){
+        for (i = 0; i < BUFSIZE && start < end; start++) {
+            rc = sprintf(&buffer[i], "%02x", membyte(start));
+            ASSERT(rc == 2, "x");
+            i += (unsigned)rc;
+        }
+        chk += gdb_cksumstr((void*)buffer);
+        gdb_sendrawstr(buffer);
+    }
+    gdb_end_response(chk);
 }
 
 CMD_HANDLER(writemem)
