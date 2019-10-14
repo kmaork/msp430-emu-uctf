@@ -1,10 +1,11 @@
 FLAGS=-Wall -Wextra -std=gnu99 -Wno-unused-function -Wno-unused-variable -Wno-missing-field-initializers
 SAFEFLAGS=$(FLAGS) -fexceptions
 #OPTFLAGS=`rpm -E %optflags` -O3
+# TODO: use mtune and march native in dev
 EXTRAFLAGS=
 NEWGCCFLAGS=-grecord-gcc-switches -fstack-protector-strong --param=ssp-buffer-size=4
-OPTFLAGS=-O3 -g -pipe -m64 -mtune=native -march=native $(NEWGCCFLAGS)
-DBGFLAGS=-O0 -g -pipe -m64 -mtune=native -march=native $(NEWGCCFLAGS)
+OPTFLAGS=-O3 -g -pipe -m64 $(NEWGCCFLAGS)
+DBGFLAGS=-O0 -g -pipe -m64 $(NEWGCCFLAGS)
 GLIB_FLAGS=`pkg-config --cflags glib-2.0`
 GLIB_LDFLAGS=`pkg-config --libs glib-2.0`
 
